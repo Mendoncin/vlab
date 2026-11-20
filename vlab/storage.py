@@ -23,6 +23,11 @@ class JSONStorage:
 
     def read_cache(self, key: str) -> object:
         try:
+            # No Windows, um pai que é arquivo pode gerar FileNotFoundError.
+            # Distingue esse bloqueio de uma entrada de cache ainda inexistente.
+            for directory in (self.directory, self.directory / "cache"):
+                if directory.exists() and not directory.is_dir():
+                    raise NotADirectoryError
             with (self.directory / "cache" / f"{key}.json").open(encoding="utf-8") as file:
                 return json.load(file)
         except FileNotFoundError:
