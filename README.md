@@ -1,4 +1,4 @@
-# Vlab — BK-001, BK-002, BK-003 e BK-004
+# Vlab — BK-001 a BK-005
 
 Base Python para carregar perfis de clientes e gerar conteúdos de suporte com a OpenAI.
 Os quatro perfis definitivos estão em `profiles/`: Ana (`ana`), Bruno (`bruno`),
@@ -284,3 +284,76 @@ atendidas pelo cache: um arquivo de cache e quatro históricos distintos, com
 conteúdo idêntico. Não houve teste manual no navegador. Evidências locais,
 ignoradas pelo Git: `.vlab/bk004-tests.log`, `.vlab/bk004-browser-smoke.log`,
 `.vlab/bk004-browser-smoke.png` e `.vlab/bk004-browser-smoke-data/history/`.
+
+## Comparação de prompts e rubrica — BK-005
+
+Execute `streamlit run app.py` e acesse **Comparação de prompts e rubrica**, abaixo
+do atendimento individual. Selecione um perfil, informe o ticket e escolha o tipo
+de conteúdo. **Comparar v1 e v2** executa ambas as versões com o mesmo perfil
+completo, ticket original e snapshot da configuração atual do modelo. As respostas
+aparecem lado a lado, identificadas por versão, modelo e origem API/cache.
+Cada execução usa o serviço BK-003: chaves distintas por prompt efetivo e um novo
+histórico individual mesmo em cache hit. Uma falha impede a avaliação consolidada,
+preservando os registros das execuções que já terminaram.
+
+Preencha manualmente, para cada versão, nota e justificativa de **Clareza**
+(`clarity`), **Adequação ao nível do cliente** (`customer_fit`) e **Acionabilidade**
+(`actionability`). Escala: 1 insuficiente, 2 fraco, 3 adequado, 4 bom, 5 excelente.
+Os totais são a soma sem pesos dos três critérios (3 a 15 por versão); a diferença
+é v2 menos v1. Esses números representam a avaliação daquele cenário específico.
+Não há avaliação por IA nem justificativas automáticas.
+
+As notas e justificativas podem ser editadas sem novas gerações. Os resultados,
+metadados, cenário e ID ficam em `st.session_state`; editar qualquer entrada do
+cenário invalida a comparação anterior e exige clicar novamente em **Comparar**.
+Uma nova comparação recebe outro ID e uma rubrica vazia. **Salvar avaliação**
+valida as duas respostas, as seis notas inteiras entre 1 e 5 e as seis justificativas
+não vazias, recalculando os totais. Após a gravação, exibe ID, caminho do JSON e
+totais, e desabilita o salvamento e a edição dessa avaliação para evitar duplicatas.
+
+O JSON fica em `.vlab/comparisons/<comparison_id>.json`, ou na subpasta
+`comparisons/` de `VLAB_STORAGE_DIR`, usando a mesma escrita atômica do BK-003.
+Para consultar depois, abra o caminho apresentado pela interface em um editor
+de texto. O arquivo contém perfil completo, ticket, tipo, provedor, modelo,
+configuração efetiva, as duas respostas estruturadas, prompts efetivos, chaves de
+cache, IDs e caminhos dos históricos, notas, justificativas, totais e timestamps UTC.
+Preserva-se a evidência observada; repetir chamadas ao modelo pode produzir
+outros textos. Chaves de API não são incluídas. A avaliação só existe em disco
+após salvar; o estado temporário da interface não substitui o JSON.
+
+As instruções existentes do BK-002 foram mantidas: v1 pede adaptação geral ao
+perfil e resposta simples e direta; v2 explicita nível técnico, estilo e canal,
+separa fatos de hipóteses/informações ausentes e prioriza orientações acionáveis.
+Ambas usam o mesmo contrato de conteúdo. Isso é uma hipótese de melhoria a
+verificar com a rubrica, sem garantia de que v2 terá a maior nota.
+
+```bash
+# BK-005: serviço, rubrica, persistência e smoke automatizado da interface.
+python -m unittest tests.test_comparison tests.test_app_comparison -v
+
+# Regressão completa dos cinco épicos, sem acesso à OpenAI.
+python -m unittest discover -v
+```
+
+Os testes utilizam SDK simulado, diretórios temporários e `Streamlit AppTest`.
+O smoke integrado usa Ana + "Meu notebook não consegue se conectar ao Wi-Fi" +
+diagnóstico, gera v1/v2, preenche uma rubrica fictícia de teste (9 e 11 pontos),
+confere o JSON salvo e repete a geração via cache, com quatro históricos e apenas
+duas chamadas ao SDK simulado. Essas notas não avaliam resultados reais.
+
+Validação do BK-005 em Python 3.12: **120 testes aprovados** (94 anteriores e
+26 novos), `pip check` sem conflitos e `git diff --check` sem erros. A interface
+foi exercitada por `AppTest`; não houve teste manual no navegador. Evidências
+locais, ignoradas pelo Git: `.vlab/bk005-tests.log`, `.vlab/bk005-mock-smoke.log`
+e o JSON completo em `.vlab/bk005-mock-smoke-data/comparisons/`.
+
+O smoke real via `AppTest` também gerou diagnóstico v1/v2 para Ana + Wi-Fi com
+`gpt-4o-mini`: dois históricos de origem API, seguidos de dois cache hits,
+totalizando dois caches e quatro históricos. As respostas e configurações estão
+em `.vlab/bk005-real-smoke-data/comparison-awaiting-manual-review.json`, sem
+notas ou justificativas, com `avaliacao_pendente: true`. O resumo está em
+`.vlab/bk005-real-smoke.log`. A avaliação definitiva dessas respostas cabe ao
+candidato. Para avaliá-las na interface sem novas chamadas, inicie o Streamlit
+com `VLAB_STORAGE_DIR` apontando para `.vlab/bk005-real-smoke-data` e repita
+exatamente o cenário, mantendo o modelo/configuração: as duas respostas podem
+ser recuperadas do cache e receber uma avaliação manual consolidada.
