@@ -221,3 +221,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local environment variants and private keys
+.env.*
+!.env.example
+*.pem
+*.key
