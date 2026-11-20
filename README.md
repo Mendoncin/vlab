@@ -1,4 +1,4 @@
-# Vlab — BK-001 e BK-002
+# Vlab — BK-001, BK-002 e BK-003
 
 Base Python para carregar perfis de clientes e gerar conteúdos de suporte com a OpenAI.
 Os quatro perfis definitivos estão em `profiles/`: Ana (`ana`), Bruno (`bruno`),
@@ -66,6 +66,9 @@ deve aceitar a Responses API e esses parâmetros.
 - `vlab/smoke.py`: demonstra o fluxo completo com um perfil, sem motor de prompts.
 - `vlab/prompt_engine.py`: montagem de prompts, estratégias e validação do BK-002.
 - `vlab/smoke_engine.py`: smoke test real do motor com validação e metadados.
+- `vlab/service.py`: fluxo compartilhado de geração, cache e histórico.
+- `vlab/storage.py`: leitura e escrita atômica de JSON local.
+- `vlab/cli.py`: argumentos e apresentação do resultado do serviço.
 - `profiles/`: destino dos quatro JSONs definitivos e descrição do formato.
 - `tests/`: testes com `unittest` e fixture explicitamente não definitiva.
 
@@ -145,3 +148,82 @@ não foi realizada avaliação comparativa de qualidade.
 
 `.env`, ambientes virtuais e caches Python permanecem ignorados pelo Git.
 Nunca inclua chaves nos JSONs, testes ou mensagens enviadas ao modelo.
+
+## CLI, histórico e cache — BK-003
+
+Com o ambiente ativado, execute na raiz do projeto (uma chamada real em cache miss):
+
+```bash
+python -m vlab.cli --perfil ana --ticket "Meu notebook não consegue se conectar ao Wi-Fi" --tipo diagnosis --versao v2
+```
+
+Argumentos: `--perfil` (obrigatório: `ana`, `bruno`, `carla`, `diego`), `--ticket`
+(texto obrigatório), `--tipo` (`diagnosis`, `resolution`, `questions`, `flow`;
+padrão `diagnosis`), `--versao` (`v1`, `v2`; padrão `v2`) e `--storage-dir`
+(opcional). Consulte também `python -m vlab.cli --help`.
+A saída é JSON com conteúdo estruturado, `cache_hit`, `origem`, `cache_key`,
+timestamp UTC, metadados e `history_path`, o caminho do registro salvo.
+Códigos de saída: 0 em sucesso, 1 em falha de entrada/geração/persistência,
+2 em argumentos ausentes ou inválidos no argparse.
+
+O padrão é `.vlab/` na raiz do projeto, independentemente do diretório corrente:
+
+- `cache/<sha256>.json`: conteúdo validado reutilizável.
+- `history/<execution_id>.json`: um registro independente por atendimento bem-sucedido,
+  inclusive cache hits; o identificador usa UUID para evitar sobrescritas.
+
+O diretório pode ser alterado por `VLAB_STORAGE_DIR` (ambiente ou `.env`) ou por
+`--storage-dir /caminho/dados` (tem prioridade). Caminhos relativos personalizados
+são relativos ao diretório corrente. O serviço também aceita `storage_dir`:
+
+```python
+from vlab.profiles import load_profile
+from vlab.service import run_generation
+
+resultado = run_generation(
+    load_profile("ana"), "Wi-Fi não conecta", "diagnosis", "v2",
+    storage_dir=".vlab",
+)
+```
+
+O serviço reutiliza o motor BK-002. Monta o prompt uma vez, obtém um snapshot
+da configuração efetiva e usa ambos na chave e na chamada. Os parâmetros
+opcionais `prepared_prompt` e `generation_config` integram esse snapshot ao motor;
+as chamadas existentes de quatro argumentos e seu retorno permanecem compatíveis.
+O SHA-256 considera JSON canônico (chaves ordenadas), perfil completo, ticket
+original, tipo, versão, prompt efetivo (instruções, contexto e schema), provedor,
+modelo e parâmetros enviados, incluindo formato estrito e limite de saída.
+Credenciais do ambiente não entram na chave ou nos arquivos.
+
+Para verificar o cache, repita exatamente o comando: o primeiro atendimento
+mostra `cache_hit: false`; o segundo, `true`, sem chamar a OpenAI, com outro
+`history_path` e novo timestamp. Alterar ticket, perfil, tipo, versão, instruções,
+schema, modelo ou parâmetros relevantes gera outra chave.
+Os registros podem ser consultados abrindo os JSONs de `history/` e relacionados
+por `cache_key`; `schema_version: 1` permite evolução futura do formato.
+
+Somente respostas válidas são cacheadas. Cache inválido/corrompido provoca nova
+geração e passa novamente pela validação do motor. Falhas de API ou validação
+não criam cache nem histórico de sucesso; podem ser tentadas novamente.
+Erros de I/O são reportados como `StorageError`, sem indicar persistência concluída.
+Se o cache for gravado e o histórico falhar, a execução falha; uma nova tentativa
+pode usar o cache válido e registrar seu próprio atendimento.
+As gravações usam temporário no mesmo diretório, flush/fsync e substituição
+atômica. `.vlab/` é ignorado pelo Git; as subpastas geradas também recebem
+`.gitignore` para proteger dados em diretórios personalizados.
+
+O armazenamento local não tem TTL, limpeza automática nem coordenação entre
+processos: chamadas simultâneas ainda podem gerar respostas equivalentes.
+O diretório configurável permitirá usar um volume persistente no futuro;
+nenhum armazenamento remoto ou deploy foi adicionado.
+
+```bash
+# Suíte completa BK-001/BK-002/BK-003: mocks, sem rede e sem chave real.
+python -m unittest discover -v
+
+# Inclui cenário integrado CLI: miss → hit → mudança de versão → miss.
+python -m unittest tests.test_service tests.test_cli -v
+```
+
+Os testes usam diretórios temporários e contadores do SDK simulado para verificar
+cache, histórico, invalidações, recuperação de corrupção, falhas e códigos da CLI.
