@@ -30,14 +30,39 @@ def generate_text(text: str) -> str:
     return output
 
 
-def generate_structured_text(instructions: str, data: str, schema: dict) -> tuple[str, str]:
+def generate_structured_text(
+    instructions: str, data: str, schema: dict, *, configuration: dict | None = None
+) -> tuple[str, str]:
     """Retorna JSON textual e o modelo solicitado; a validação local cabe ao motor."""
     return _generate(
         data,
         instructions=instructions,
         schema=schema,
         max_output_tokens=STRUCTURED_MAX_OUTPUT_TOKENS,
+        configuration=configuration,
     )
+
+
+def get_generation_config(
+    *, schema: dict | None = None, max_output_tokens: int = MAX_OUTPUT_TOKENS
+) -> dict:
+    """Snapshot dos parâmetros enviados à API, sem credenciais ou opções do cliente."""
+    load_dotenv(ENV_FILE, override=False)
+    config = {
+        "model": os.getenv("OPENAI_MODEL", "").strip() or DEFAULT_MODEL,
+        "max_output_tokens": max_output_tokens,
+        "store": False,
+    }
+    if schema is not None:
+        config["text"] = {
+            "format": {
+                "type": "json_schema",
+                "name": "support_content",
+                "schema": schema,
+                "strict": True,
+            }
+        }
+    return config
 
 
 def _generate(
@@ -46,36 +71,30 @@ def _generate(
     instructions: str | None = None,
     schema: dict | None = None,
     max_output_tokens: int = MAX_OUTPUT_TOKENS,
+    configuration: dict | None = None,
 ) -> tuple[str, str]:
     if not isinstance(text, str) or not text.strip():
         raise ValueError("A entrada deve ser um texto não vazio.")
 
-    load_dotenv(ENV_FILE, override=False)
+    if configuration is None:
+        config = get_generation_config(schema=schema, max_output_tokens=max_output_tokens)
+    else:
+        load_dotenv(ENV_FILE, override=False)
+        config = configuration
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key:
         raise AIError("Configure OPENAI_API_KEY no .env ou no ambiente.")
-    model = os.getenv("OPENAI_MODEL", "").strip() or DEFAULT_MODEL
+    model = config["model"]
 
     options = {}
     if instructions is not None:
         options["instructions"] = instructions
-    if schema is not None:
-        options["text"] = {
-            "format": {
-                "type": "json_schema",
-                "name": "support_content",
-                "schema": schema,
-                "strict": True,
-            }
-        }
 
     try:
         with OpenAI(api_key=api_key, timeout=30.0, max_retries=0) as client:
             response = client.responses.create(
-                model=model,
                 input=text,
-                max_output_tokens=max_output_tokens,
-                store=False,
+                **config,
                 **options,
             )
     except AuthenticationError:
