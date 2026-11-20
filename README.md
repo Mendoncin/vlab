@@ -357,3 +357,56 @@ candidato. Para avaliá-las na interface sem novas chamadas, inicie o Streamlit
 com `VLAB_STORAGE_DIR` apontando para `.vlab/bk005-real-smoke-data` e repita
 exatamente o cenário, mantendo o modelo/configuração: as duas respostas podem
 ser recuperadas do cache e receber uma avaliação manual consolidada.
+
+## Preparação para Railway — BK-006 / T01
+
+O repositório está preparado para Railpack: `.python-version` seleciona Python
+3.12, `requirements.txt` fornece as dependências existentes e `railpack.json`
+define `deploy.startCommand`:
+
+```sh
+python -m streamlit run app.py --server.address 0.0.0.0 --server.port ${PORT:-8501} --server.headless true
+```
+
+O Railpack executa o comando em shell, expandindo `PORT` em tempo de execução;
+sem essa variável (ou com valor vazio), a porta local é 8501. Ele detecta Python
+e instala as dependências automaticamente, sem Dockerfile ou etapas extras.
+Veja as referências oficiais de [Python](https://railpack.com/languages/python/),
+[railpack.json](https://railpack.com/config/file/) e
+[comando de inicialização](https://docs.railway.com/deployments/start-command).
+
+Configuração manual pelo responsável, após disponibilizar esta revisão no GitHub:
+
+1. No Railway, use **New Project → Deploy from GitHub repo** e selecione o
+   repositório/branch. Se oferecido, escolha **Add variables** para configurar antes
+   do primeiro deploy. Use a raiz do repositório como **Root Directory**.
+2. Em **Settings → Build**, confirme **Railpack** como **Builder**. Mantenha
+   **Settings → Deploy → Custom Start Command** sem sobrescrita; confirme nos
+   **Build Logs** que o comando de `railpack.json` é o comando Streamlit acima.
+3. Em **Variables**, configure `OPENAI_API_KEY` com a chave real e
+   `VLAB_STORAGE_DIR=/data`. `OPENAI_MODEL` é opcional (padrão `gpt-4o-mini`);
+   se informado, deve aceitar Structured Outputs na Responses API. Não envie `.env`.
+4. No canvas do projeto, use o menu de contexto ou a paleta de comandos para
+   criar um **Volume**, conecte-o ao serviço Vlab e defina **Mount Path** exatamente
+   como `/data`. A variável sozinha não cria armazenamento persistente.
+5. Aplique as alterações e execute o deploy pelo painel. Em **Settings → Networking
+   → Public Networking**, clique em **Generate Domain**; a porta de destino deve
+   corresponder à `PORT` do serviço. Deixe o Railway fornecer `PORT`.
+6. Em **Deployments**, abra o deployment: confira **Build Logs** (Python 3.12,
+   dependências e comando) e os logs de execução (servidor iniciado ou falhas).
+   Para erros de geração, confira também a mensagem exibida na aplicação e a
+   validade/acesso da chave; para falhas de persistência, confira montagem e
+   permissões de escrita em `/data`.
+
+Com o volume anexado, o armazenamento existente grava `/data/history/`,
+`/data/cache/` e `/data/comparisons/`, sem alterar os JSONs ou a lógica de cache.
+Sem `VLAB_STORAGE_DIR`, o padrão local continua sendo `.vlab/` na raiz do projeto.
+Dados no sistema de arquivos efêmero do contêiner podem desaparecer ao substituí-lo;
+o volume preserva os arquivos entre deployments. Falhas de escrita geram
+`StorageError` e não confirmam sucesso na interface.
+
+Esta etapa valida somente a preparação local. Publicação, domínio e verificação
+da persistência após redeploy no Railway serão realizados posteriormente pelo
+responsável. Referências: [volumes](https://docs.railway.com/volumes),
+[domínio público](https://docs.railway.com/networking/public-networking) e
+[logs](https://docs.railway.com/observability/logs).
