@@ -227,3 +227,6 @@ __marimo__/
 !.env.example
 *.pem
 *.key
+
+# BK-003: histórico e cache locais
+.vlab/
