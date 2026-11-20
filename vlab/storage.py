@@ -46,6 +46,9 @@ class JSONStorage:
     def write_history(self, record: dict) -> Path:
         return self._write("history", record["execution_id"], record)
 
+    def write_comparison(self, record: dict) -> Path:
+        return self._write("comparisons", record["comparison_id"], record)
+
     def _write(self, folder: str, identifier: str, data: dict) -> Path:
         directory = self.directory / folder
         temporary = None

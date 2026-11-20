@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from vlab import profiles, service
+from vlab import comparison, profiles, service
 from vlab.ai import AIError
 from vlab.prompt_engine import (
     CONTENT_STRATEGIES, VERSION_INSTRUCTIONS, ResponseValidationError,
@@ -81,6 +81,111 @@ def render_result(result: dict) -> None:
     st.code(result["history_path"], language=None)
 
 
+def render_comparison(available_profiles: dict) -> None:
+    st.divider()
+    st.header("Comparação de prompts e rubrica")
+    profile_id = st.selectbox(
+        "Perfil para comparação", PROFILE_IDS, key="comparison_profile",
+        format_func=lambda identifier: profile_label(available_profiles[identifier]),
+    )
+    ticket = st.text_area("Ticket para comparação", key="comparison_ticket", height=140)
+    content_type = st.selectbox(
+        "Tipo de conteúdo para comparação", tuple(CONTENT_STRATEGIES),
+        format_func=CONTENT_LABELS.get, key="comparison_type",
+    )
+    current_scenario = {
+        "perfil": available_profiles[profile_id], "ticket": ticket, "tipo_conteudo": content_type,
+    }
+    active = st.session_state.get("comparison")
+    if active is not None and any(
+        active["cenario"][field] != value for field, value in current_scenario.items()
+    ):
+        st.session_state.pop("comparison", None)
+        st.session_state.pop("saved_comparison", None)
+        st.info("Cenário alterado. Execute uma nova comparação antes de avaliar.")
+
+    if st.button("Comparar v1 e v2", key="compare_prompts", type="primary"):
+        st.session_state.pop("comparison", None)
+        st.session_state.pop("saved_comparison", None)
+        if not ticket.strip():
+            st.error("Informe o problema do cliente antes de comparar.")
+        else:
+            try:
+                with st.spinner("Gerando v1 e v2 e salvando os históricos..."):
+                    st.session_state["comparison"] = comparison.run_comparison(
+                        profiles.load_profile(profile_id), ticket, content_type,
+                    )
+            except (AIError, StorageError, ValueError):
+                st.error(
+                    "Comparação incompleta: não foi possível obter as duas respostas válidas. "
+                    "Verifique o perfil, a configuração OpenAI e o diretório de armazenamento. "
+                    "As execuções já concluídas mantêm seu cache e histórico."
+                )
+
+    active = st.session_state.get("comparison")
+    if active is None:
+        return
+    st.caption("Comparação: " + active["comparison_id"])
+    for column, version in zip(st.columns(2), comparison.VERSIONS):
+        result = active["resultados"][version]
+        with column:
+            st.subheader("Prompt " + VERSION_LABELS[version])
+            st.write("Modelo: " + result["modelo"])
+            st.write("Origem: cache (cache hit)" if result["cache_hit"] else "Origem: API OpenAI")
+            render_content(result["conteudo"], result["tipo_conteudo"])
+            with st.expander("Metadados da execução " + version):
+                st.write("Execução: " + result["execution_id"])
+                st.code(result["history_path"], language=None)
+
+    st.subheader("Rubrica manual")
+    st.write("1 — Insuficiente · 2 — Fraco · 3 — Adequado · 4 — Bom · 5 — Excelente")
+    st.caption("Os totais representam apenas a avaliação manual deste cenário, com máximo de 15 pontos.")
+    saved = st.session_state.get("saved_comparison")
+    evaluations = {}
+    for column, version in zip(st.columns(2), comparison.VERSIONS):
+        with column:
+            st.markdown("**Avaliação " + version + "**")
+            criteria = {}
+            for criterion, (label, question) in comparison.CRITERIA.items():
+                if saved is not None:
+                    entry = saved["resultados"][version]["avaliacao"]["criteria"][criterion]
+                    st.markdown(f"**{label}: {entry['score']}/5**")
+                    st.write(entry["justification"])
+                    criteria[criterion] = entry
+                    continue
+                prefix = f"{active['comparison_id']}_{version}_{criterion}"
+                score = st.number_input(
+                    f"Nota de {label} ({version})", min_value=1, max_value=5, value=3, step=1,
+                    key=prefix + "_score", help=question,
+                )
+                justification = st.text_area(
+                    f"Justificativa de {label} ({version})", key=prefix + "_justification",
+                )
+                criteria[criterion] = {"score": score, "justification": justification}
+            evaluations[version] = criteria
+    totals = {
+        version: sum(entry["score"] for entry in criteria.values())
+        for version, criteria in evaluations.items()
+    }
+    st.write(f"Total v1: {totals['v1']}/15 · Total v2: {totals['v2']}/15")
+    st.write(f"Diferença v2 − v1: {totals['v2'] - totals['v1']:+d}")
+    if st.button("Salvar avaliação", key="save_comparison", disabled=saved is not None):
+        try:
+            saved = comparison.save_comparison(active, evaluations)
+            st.session_state["saved_comparison"] = saved
+            # Exibe a rubrica persistida como leitura após confirmar a gravação.
+            st.rerun()
+        except ValueError as error:
+            st.error(str(error))
+        except StorageError:
+            st.error("Não foi possível salvar a comparação. Verifique o diretório e tente novamente.")
+    if saved is not None:
+        st.success("Avaliação salva. Comparação: " + saved["comparison_id"])
+        st.write(f"Totais salvos — v1: {saved['totais']['v1']}/15 · v2: {saved['totais']['v2']}/15")
+        st.write("JSON da comparação:")
+        st.code(saved["comparison_path"], language=None)
+
+
 def main() -> None:
     st.set_page_config(page_title="Vlab — Atendimento", page_icon="💬")
     st.title("Vlab — Assistente de suporte")
@@ -145,6 +250,8 @@ def main() -> None:
 
     if st.session_state.get("last_result") is not None:
         render_result(st.session_state["last_result"])
+
+    render_comparison(available_profiles)
 
 
 if __name__ == "__main__":

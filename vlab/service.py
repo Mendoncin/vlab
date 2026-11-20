@@ -1,5 +1,6 @@
 """BK-003: fluxo reutilizável de motor, cache e histórico para CLI e futura UI."""
 
+from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -37,14 +38,17 @@ def _cached_content(storage: JSONStorage, key: str, content_type: str) -> dict |
 def run_generation(
     profile: dict, ticket: str, content_type: str, version: str, *,
     storage_dir: str | Path | None = None,
+    generation_config: dict | None = None,
 ) -> dict:
     """Retorna conteúdo e metadados atuais somente após persistir o histórico.
 
     O diretório explícito prevalece sobre VLAB_STORAGE_DIR e sobre o padrão .vlab.
     Falhas da API/validação não são cacheadas; falhas de I/O geram StorageError.
+    generation_config permite compartilhar um snapshot entre v1/v2; por padrão,
+    a configuração continua sendo obtida do ambiente. O prompt efetivo é preservado.
     """
     prompt = prompt_engine.build_prompt(profile, ticket, content_type, version)
-    configuration = ai.get_generation_config(
+    configuration = deepcopy(generation_config) if generation_config is not None else ai.get_generation_config(
         schema=prompt["schema"], max_output_tokens=ai.STRUCTURED_MAX_OUTPUT_TOKENS
     )
     key = cache_key({
@@ -83,6 +87,7 @@ def run_generation(
         "origem": "cache" if cache_hit else "api",
         "cache_hit": cache_hit,
         "cache_key": key,
+        "prompt": prompt,
     }
     history_path = storage.write_history(record)
     return {**record, "history_path": str(history_path)}
