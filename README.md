@@ -1,4 +1,4 @@
-# Vlab — BK-001, BK-002 e BK-003
+# Vlab — BK-001, BK-002, BK-003 e BK-004
 
 Base Python para carregar perfis de clientes e gerar conteúdos de suporte com a OpenAI.
 Os quatro perfis definitivos estão em `profiles/`: Ana (`ana`), Bruno (`bruno`),
@@ -227,3 +227,60 @@ python -m unittest tests.test_service tests.test_cli -v
 
 Os testes usam diretórios temporários e contadores do SDK simulado para verificar
 cache, histórico, invalidações, recuperação de corrupção, falhas e códigos da CLI.
+
+## Interface web — BK-004
+
+O `requirements.txt` inclui Streamlit 1.65, compatível com Python 3.10 ou superior.
+Com o ambiente virtual ativado, instale
+as dependências e execute a página única na raiz do projeto:
+
+```bash
+python -m pip install -r requirements.txt
+streamlit run app.py
+```
+
+Abra o endereço local informado pelo Streamlit (normalmente
+`http://localhost:8501`). Selecione Ana, Bruno, Carla ou Diego, informe o ticket,
+escolha um dos quatro conteúdos e a versão v1 ou v2, e clique em **Gerar resposta**.
+Os nomes e atributos dos perfis são carregados dos JSONs existentes.
+
+O formulário `st.form` envia as escolhas em conjunto; somente a submissão chama
+`vlab.service.run_generation`, o mesmo serviço da CLI BK-003. Ele reutiliza o motor
+BK-002, a configuração OpenAI e o `.env` do BK-001. Há indicador de carregamento
+e mensagens de erro sem credenciais ou stack traces. A última resposta fica em
+`st.session_state`, para que rerenderizações não disparem outra geração.
+
+A resposta estruturada aparece em seções de diagnóstico, passos de resolução,
+perguntas por prioridade ou decisões de fluxo, conforme o contrato do motor.
+Abaixo são exibidos cliente, tipo, versão, modelo, origem API/cache e o caminho
+do JSON correspondente à execução. Cache e histórico são integralmente os do
+BK-003, em `.vlab/` ou `VLAB_STORAGE_DIR`. Repetir exatamente a solicitação pode
+reutilizar o cache sem chamar a API, mas sempre cria outro registro de histórico.
+
+```bash
+# Suíte completa, incluindo interface; sem chamadas reais à OpenAI.
+python -m unittest discover -v
+
+# Controles, submissão, apresentação, falhas e integração cache/histórico da UI.
+python -m unittest tests.test_app -v
+```
+
+Os testes da interface usam `streamlit.testing.v1.AppTest`, os perfis reais,
+armazenamento temporário e mocks do SDK. O cenário Ana +
+"Meu notebook não consegue se conectar ao Wi-Fi" + diagnóstico/v2 comprova
+miss → hit, uma única chamada ao SDK e dois históricos distintos. Também
+verificam que rerenderizações preservam o resultado sem gerar outra execução.
+
+Para demonstrar no navegador, execute o servidor, preencha esse mesmo cenário
+e submeta duas vezes. Com cache inicialmente vazio e chave válida, a primeira
+execução usa a OpenAI e a segunda usa o cache; cada uma exibe seu próprio JSON.
+
+Validação do BK-004 em Python 3.12: **94 testes aprovados**, incluindo 14 da
+interface, e `pip check` sem conflitos. O servidor local e o formulário foram
+exercitados em Chrome headless via automação do navegador, com apresentação
+da resposta e do caminho do histórico. O cenário Ana + Wi-Fi + diagnóstico/v2
+realizou uma chamada real à OpenAI (`gpt-4o-mini`), seguida de três repetições
+atendidas pelo cache: um arquivo de cache e quatro históricos distintos, com
+conteúdo idêntico. Não houve teste manual no navegador. Evidências locais,
+ignoradas pelo Git: `.vlab/bk004-tests.log`, `.vlab/bk004-browser-smoke.log`,
+`.vlab/bk004-browser-smoke.png` e `.vlab/bk004-browser-smoke-data/history/`.
