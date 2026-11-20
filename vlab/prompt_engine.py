@@ -204,11 +204,21 @@ def validate_response(raw: str, content_type: str) -> dict:
     return content
 
 
-def generate_content(profile: dict, ticket: str, content_type: str, version: str) -> dict:
-    """Uma chamada, conteúdo validado e metadados serializáveis; sem armazenamento ou cache."""
-    prompt = build_prompt(profile, ticket, content_type, version)
+def generate_content(
+    profile: dict, ticket: str, content_type: str, version: str, *,
+    prepared_prompt: dict | None = None, generation_config: dict | None = None,
+) -> dict:
+    """Uma chamada e conteúdo validado, sem armazenamento ou cache.
+
+    O serviço pode fornecer o prompt/configuração já preparados para usar o mesmo
+    snapshot no cache e na API. Sem esses opcionais, mantém o fluxo BK-002.
+    """
+    prompt = prepared_prompt if prepared_prompt is not None else build_prompt(
+        profile, ticket, content_type, version
+    )
+    options = {} if generation_config is None else {"configuration": generation_config}
     raw, model = generate_structured_text(
-        prompt["instructions"], prompt["input"], prompt["schema"]
+        prompt["instructions"], prompt["input"], prompt["schema"], **options
     )
     content = validate_response(raw, content_type)
     return {
