@@ -15,7 +15,10 @@ from openai import (
     RateLimitError,
 )
 
-from vlab.ai import AIError, DEFAULT_MODEL, MAX_OUTPUT_TOKENS, generate_text
+from vlab.ai import (
+    AIError, DEFAULT_MODEL, MAX_OUTPUT_TOKENS, STRUCTURED_MAX_OUTPUT_TOKENS,
+    generate_structured_text, generate_text,
+)
 
 
 class AITests(unittest.TestCase):
@@ -49,6 +52,22 @@ class AITests(unittest.TestCase):
         os.environ["OPENAI_MODEL"] = "modelo-configurado"
         generate_text("Olá")
         self.assertEqual(self.client.responses.create.call_args.kwargs["model"], "modelo-configurado")
+
+    def test_structured_output_uses_same_transport_and_reports_requested_model(self):
+        os.environ["OPENAI_MODEL"] = "modelo-configurado"
+        schema = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
+        self.client.responses.create.return_value.output_text = " {} "
+        self.assertEqual(
+            generate_structured_text("Regras", "Dados", schema), ("{}", "modelo-configurado")
+        )
+        self.sdk.assert_called_once_with(api_key="chave-ficticia", timeout=30.0, max_retries=0)
+        self.client.responses.create.assert_called_once_with(
+            model="modelo-configurado", input="Dados", instructions="Regras",
+            max_output_tokens=STRUCTURED_MAX_OUTPUT_TOKENS, store=False,
+            text={"format": {
+                "type": "json_schema", "name": "support_content", "schema": schema, "strict": True,
+            }},
+        )
 
     def test_empty_model_uses_default(self):
         os.environ["OPENAI_MODEL"] = "  "
@@ -94,7 +113,9 @@ class AITests(unittest.TestCase):
         self.sdk.assert_not_called()
 
     def test_rejects_empty_or_incomplete_response(self):
-        for status, output in (("completed", "  "), ("incomplete", "Texto parcial")):
+        for status, output in (
+            ("completed", "  "), ("completed", None), ("incomplete", "Texto parcial"),
+        ):
             with self.subTest(status=status):
                 self.client.responses.create.return_value = SimpleNamespace(
                     status=status, output_text=output

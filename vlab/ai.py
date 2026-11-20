@@ -1,4 +1,4 @@
-"""Uma entrada textual, uma chamada à OpenAI, uma resposta textual."""
+"""Transporte compartilhado para texto e saída estruturada da OpenAI."""
 
 import os
 from pathlib import Path
@@ -17,6 +17,7 @@ from openai import (
 ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 DEFAULT_MODEL = "gpt-4o-mini"
 MAX_OUTPUT_TOKENS = 120
+STRUCTURED_MAX_OUTPUT_TOKENS = 1600
 
 
 class AIError(RuntimeError):
@@ -25,6 +26,27 @@ class AIError(RuntimeError):
 
 def generate_text(text: str) -> str:
     """Gera texto com saída limitada e sem tentativas automáticas adicionais."""
+    output, _ = _generate(text)
+    return output
+
+
+def generate_structured_text(instructions: str, data: str, schema: dict) -> tuple[str, str]:
+    """Retorna JSON textual e o modelo solicitado; a validação local cabe ao motor."""
+    return _generate(
+        data,
+        instructions=instructions,
+        schema=schema,
+        max_output_tokens=STRUCTURED_MAX_OUTPUT_TOKENS,
+    )
+
+
+def _generate(
+    text: str,
+    *,
+    instructions: str | None = None,
+    schema: dict | None = None,
+    max_output_tokens: int = MAX_OUTPUT_TOKENS,
+) -> tuple[str, str]:
     if not isinstance(text, str) or not text.strip():
         raise ValueError("A entrada deve ser um texto não vazio.")
 
@@ -34,13 +56,27 @@ def generate_text(text: str) -> str:
         raise AIError("Configure OPENAI_API_KEY no .env ou no ambiente.")
     model = os.getenv("OPENAI_MODEL", "").strip() or DEFAULT_MODEL
 
+    options = {}
+    if instructions is not None:
+        options["instructions"] = instructions
+    if schema is not None:
+        options["text"] = {
+            "format": {
+                "type": "json_schema",
+                "name": "support_content",
+                "schema": schema,
+                "strict": True,
+            }
+        }
+
     try:
         with OpenAI(api_key=api_key, timeout=30.0, max_retries=0) as client:
             response = client.responses.create(
                 model=model,
                 input=text,
-                max_output_tokens=MAX_OUTPUT_TOKENS,
+                max_output_tokens=max_output_tokens,
                 store=False,
+                **options,
             )
     except AuthenticationError:
         raise AIError("Autenticação recusada. Verifique a chave da OpenAI.") from None
@@ -73,7 +109,10 @@ def generate_text(text: str) -> str:
 
     if response.status != "completed":
         raise AIError("A OpenAI não concluiu a resposta; verifique o limite de saída e o modelo.")
-    output = response.output_text.strip()
+    output = response.output_text
+    if not isinstance(output, str):
+        raise AIError("A OpenAI retornou uma resposta sem texto.")
+    output = output.strip()
     if not output:
         raise AIError("A OpenAI retornou uma resposta sem texto.")
-    return output
+    return output, model
