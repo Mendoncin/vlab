@@ -1,0 +1,25 @@
+{
+  "passos": [
+    {
+      "ordem": 1,
+      "instrucao": "Verifique se o Wi-Fi está ativado no seu notebook. Normalmente, você pode fazer isso clicando no ícone de Wi-Fi na barra de tarefas e conferindo se está ativado."
+    },
+    {
+      "ordem": 2,
+      "instrucao": "Reinicie o seu notebook. Às vezes, um simples reinício pode resolver problemas de conexão."
+    },
+    {
+      "ordem": 3,
+      "instrucao": "Verifique se outros dispositivos conseguem se conectar ao mesmo Wi-Fi. Isso irá ajudá-la a entender se o problema está no notebook ou na rede."
+    },
+    {
+      "ordem": 4,
+      "instrucao": "Se o seu Wi-Fi estiver ativado e outros dispositivos estiverem conectando, tente esquecer a rede. Vá até as configurações de Wi-Fi, selecione a rede, e clique em 'Esquecer'. Depois, reconecte-se inserindo a senha novamente."
+    },
+    {
+      "ordem": 5,
+      "instrucao": "Caso ainda não consiga conectar, reinicie o seu roteador. Desligue-o, espere alguns segundos e ligue-o novamente."
+    }
+  ],
+  "verificacao": "Após seguir todos os passos, veja se o notebook consegue se conectar ao Wi-Fi. Se ainda não estiver funcionando, talvez seja necessário buscar ajuda especializada."
+}

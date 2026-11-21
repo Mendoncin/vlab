@@ -1,0 +1,16 @@
+{
+  "decisoes": [
+    {
+      "ordem": 1,
+      "condicao": "O Wi-Fi do notebook está ativado?",
+      "se_sim": "Siga para a decisão 2.",
+      "se_nao": "Ative o Wi-Fi nas configurações do notebook e confira novamente."
+    },
+    {
+      "ordem": 2,
+      "condicao": "O nome da rede desejada aparece na lista de redes?",
+      "se_sim": "Selecione a rede e tente se conectar. Se não conseguir, informe a mensagem de erro para continuar o atendimento.",
+      "se_nao": "Informe se outros aparelhos conseguem encontrar essa rede para esclarecer se a dificuldade ocorre só no notebook."
+    }
+  ]
+}
