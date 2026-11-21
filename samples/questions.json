@@ -1,0 +1,16 @@
+{
+  "perguntas": [
+    {
+      "prioridade": 1,
+      "pergunta": "Outros aparelhos conseguem se conectar à mesma rede Wi-Fi?"
+    },
+    {
+      "prioridade": 2,
+      "pergunta": "O nome da rede aparece na lista de redes disponíveis do notebook?"
+    },
+    {
+      "prioridade": 3,
+      "pergunta": "Aparece alguma mensagem de erro ao tentar conectar? Se sim, qual?"
+    }
+  ]
+}

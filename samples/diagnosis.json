@@ -1,0 +1,16 @@
+{
+  "hipoteses": [
+    "O Wi-Fi do notebook está desativado.",
+    "O roteador pode estar com problemas de conexão.",
+    "As credenciais de acesso ao Wi-Fi estão incorretas.",
+    "O adaptador de rede do notebook pode estar com falha."
+  ],
+  "evidencias": [],
+  "informacoes_faltantes": [
+    "Modelo do notebook",
+    "Sistema operacional",
+    "Se outros dispositivos conseguem se conectar ao Wi-Fi",
+    "Se o Wi-Fi estava funcionando antes"
+  ],
+  "conclusao": "Sem informações adicionais, não é possível determinar a causa exata do problema."
+}
