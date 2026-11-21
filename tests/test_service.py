@@ -23,10 +23,13 @@ class MockGenerationCase(unittest.TestCase):
     def setUp(self):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.directory = Path(temporary.name)
+        # Canonicaliza também nomes curtos de diretórios temporários no Windows.
+        self.directory = Path(temporary.name).resolve()
         self.profile = load_profile("ana")
         environment = patch.dict(os.environ, {
             "OPENAI_API_KEY": "chave-ficticia-secreta", "OPENAI_MODEL": "modelo-teste",
+            # Permite ao Streamlit localizar um home isolado no Windows.
+            "USERPROFILE": str(self.directory),
         }, clear=True)
         environment.start()
         self.addCleanup(environment.stop)
