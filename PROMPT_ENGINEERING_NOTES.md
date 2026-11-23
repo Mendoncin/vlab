@@ -136,12 +136,21 @@ v2. As notas se referem aos textos preservados, não a novas gerações nesta ta
 
 - Instruções mais específicas não garantem uma resposta melhor. Formato válido
   também não comprova fatos ou adequação da orientação.
+- A concisão pode melhorar a objetividade, mas perfis didáticos ou detalhados
+  podem exigir explicações adicionais. O equilíbrio entre essas instruções depende
+  do contexto e pode não ser perfeito em todas as gerações; essa tensão potencial
+  não comprova um defeito da implementação.
 - Configurações equivalentes não eliminam variação do modelo. Duas avaliações do
   mesmo perfil/ticket não cobrem outros clientes, problemas ou repetições.
 - A rubrica é subjetiva, usa pesos iguais e não mede concordância entre avaliadores.
   O registro não identifica o avaliador; não se infere quem atribuiu as notas.
 - Fixar o cenário/configuração e preservar os prompts facilita atribuir diferenças
   às versões, mas os resultados continuam sujeitos à variabilidade e ao julgamento.
+- A v2 altera simultaneamente a disciplina epistêmica (hipóteses, evidências,
+  incertezas e informações ausentes) e a personalização (linguagem, profundidade e
+  comunicação conforme o perfil). A comparação v1/v2 permite avaliar o efeito
+  conjunto dessas mudanças, mas não atribuir isoladamente uma eventual melhoria
+  a apenas um desses fatores.
 - O cache SHA-256 usa JSON canônico com perfil, ticket exato, tipo, versão, prompt,
   provedor e configuração. Ganha rastreabilidade/reuso sem reconhecer equivalência
   semântica. Cache hits congelam o texto observado, não são novas amostras do modelo.
