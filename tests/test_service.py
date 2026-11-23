@@ -98,12 +98,14 @@ class ServiceTests(MockGenerationCase):
         self.assertEqual(first["conteudo"], second["conteudo"])
         self.assertEqual(first["cache_key"], second["cache_key"])
         self.assertNotEqual(first["execution_id"], second["execution_id"])
-        self.assertNotEqual(first["timestamp_utc"], second["timestamp_utc"])
         self.assertEqual(len(self.history()), 2)
         self.assertEqual(Path(first["history_path"]).read_bytes(), first_bytes)
-        saved = json.loads(Path(second["history_path"]).read_text(encoding="utf-8"))
-        self.assertTrue(saved["cache_hit"])
-        self.assertEqual(saved["timestamp_utc"], second["timestamp_utc"])
+        # A resolução do relógio permite timestamps iguais para IDs distintos.
+        for result in (first, second):
+            with self.subTest(execution_id=result["execution_id"]):
+                self.assertEqual(datetime.fromisoformat(result["timestamp_utc"]).tzinfo, timezone.utc)
+                saved = json.loads(Path(result["history_path"]).read_text(encoding="utf-8"))
+                self.assertEqual(saved, {k: v for k, v in result.items() if k != "history_path"})
 
     def test_ticket_type_version_and_every_profile_field_invalidate_cache(self):
         original = self.run_request()
