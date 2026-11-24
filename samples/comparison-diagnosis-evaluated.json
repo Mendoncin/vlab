@@ -193,15 +193,15 @@
         "criteria": {
           "clarity": {
             "score": 4,
-            "justification": "Organizada, objetiva e compreensiva"
+            "justification": "Achei a resposta bem organizada, objetiva e fácil de compreender. As informações são apresentadas de forma clara, sem complicar desnecessariamente o diagnóstico."
           },
           "customer_fit": {
             "score": 3,
-            "justification": "É objetiva, mas não considero tão didática, considerando que o usuário é leigo"
+            "justification": "A linguagem é acessível, mas senti falta de uma abordagem mais didática. Como a cliente é leiga, acredito que algumas explicações poderiam ser mais desenvolvidas para ajudá-la a entender o problema."
           },
           "actionability": {
             "score": 3,
-            "justification": "Gosto da acionabilidade, mas acho que podia ser mais propositiva"
+            "justification": "Gostei de como a resposta organiza as possíveis causas, mas acredito que poderia ser mais propositiva, indicando quais verificações simples seriam mais úteis para avançar no diagnóstico."
           }
         },
         "total": 10
@@ -333,15 +333,15 @@
         "criteria": {
           "clarity": {
             "score": 4,
-            "justification": "Considero muito parecida com a avaliação v1"
+            "justification": "A resposta também é clara e bem organizada. Percebi um cuidado maior em distinguir o que sabemos do que ainda precisa ser investigado, mas, em termos de compreensão, achei o resultado bastante semelhante ao da v1."
           },
           "customer_fit": {
             "score": 3,
-            "justification": "Também se perpetua essa questão da falta de didatismo"
+            "justification": "Apesar das mudanças no prompt, senti que a resposta ainda não explora tão bem o estilo didático esperado para uma cliente leiga. A linguagem continua acessível, mas poderia explicar melhor algumas informações."
           },
           "actionability": {
             "score": 3,
-            "justification": "Sinto que também falta orientações"
+            "justification": "A resposta identifica informações importantes para continuar o atendimento, mas senti falta de orientações mais concretas sobre o que verificar primeiro. Nesse aspecto, não percebi uma melhoria significativa em relação à v1."
           }
         },
         "total": 10

@@ -197,15 +197,15 @@
         "criteria": {
           "clarity": {
             "score": 4,
-            "justification": "Gosto desse modo topicalizado, com uma linguagem bem simples e objetiva"
+            "justification": "Gostei da organização em tópicos e da linguagem simples e objetiva. Os passos são fáceis de acompanhar, sem exigir que a cliente tenha conhecimentos técnicos avançados."
           },
           "customer_fit": {
             "score": 4,
-            "justification": "Linguagem acessível para uma pessoa leiga, com explicações práticas sobre onde encontrar as configurações"
+            "justification": "Achei a linguagem bastante acessível para uma pessoa leiga. A resposta também traz explicações práticas, como onde encontrar determinadas configurações, o que facilita a execução das instruções."
           },
           "actionability": {
             "score": 4,
-            "justification": "Prioriza verificações simples e diferencia possíveis falhas no notebook e na rede. Poderia evitar algumas ações mais invasivas sem diagnóstico adicional"
+            "justification": "Gostei especialmente de a resposta começar com uma verificação simples e sugerir conferir se outros dispositivos conseguem acessar a rede. Isso ajuda a diferenciar um problema no notebook de uma falha na conexão. Ainda assim, algumas ações poderiam depender de verificações adicionais antes de serem sugeridas."
           }
         },
         "total": 12
@@ -342,15 +342,15 @@
         "criteria": {
           "clarity": {
             "score": 4,
-            "justification": "Gosto desse modo topicalizado, com uma linguagem bem simples e objetiva"
+            "justification": "A resposta mantém uma boa organização em etapas e utiliza uma linguagem simples. Achei as instruções compreensíveis, sem diferenças muito significativas de clareza em relação à primeira versão."
           },
           "customer_fit": {
             "score": 4,
-            "justification": "Linguagem acessível para uma pessoa leiga, com explicações práticas sobre onde encontrar as configurações"
+            "justification": "A linguagem continua adequada a uma cliente leiga, com orientações práticas e sem excesso de termos técnicos. Nesse aspecto, considero que as duas versões atendem bem ao perfil selecionado."
           },
           "actionability": {
             "score": 3,
-            "justification": "começa pelo reinício do notebook e não verifica se outros dispositivos conseguem acessar a rede, dificultando a identificação da origem do problema"
+            "justification": "Aqui preferi a v1. A segunda versão começa sugerindo reiniciar o notebook e não propõe verificar se outros dispositivos conseguem acessar a mesma rede. Para mim, essa verificação seria mais útil inicialmente, porque ajudaria a identificar a origem do problema antes de tentar outras ações."
           }
         },
         "total": 11
